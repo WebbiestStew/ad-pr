@@ -1,0 +1,50 @@
+version: "3.9"
+
+# ─── SERVICIOS ────────────────────────────────────────────────────────────────
+services:
+
+  # Servicio Flask (app principal)
+  flask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_app
+    environment:
+      - APP_ENV=production
+    volumes:
+      - app_logs:/app/logs        # volumen para logs
+    networks:
+      - webnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Servicio Nginx (proxy inverso)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    ports:
+      - "80:80"                   # expone el puerto 80 al exterior
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro   # config de nginx
+      - nginx_logs:/var/log/nginx                         # volumen para logs
+    networks:
+      - webnet
+    depends_on:
+      - flask
+    restart: unless-stopped
+
+# ─── VOLÚMENES ────────────────────────────────────────────────────────────────
+volumes:
+  app_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# ─── REDES ────────────────────────────────────────────────────────────────────
+networks:
+  webnet:
+    driver: bridge

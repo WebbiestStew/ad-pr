@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo "Instalando dependencias..."
+      - pip install -r requirements.txt
+
+  pre_build:
+    commands:
+      - echo "Ejecutando pruebas automatizadas..."
+      - python -m pytest test_app.py -v
+
+  build:
+    commands:
+      - echo "Build iniciado - $(date)"
+      - zip -r app.zip app.py requirements.txt
+      - echo "Build completado - $(date)"
+
+  post_build:
+    commands:
+      - echo "Subiendo artefacto a S3..."
+      - aws s3 cp app.zip s3://$S3_BUCKET/builds/app.zip
+      - echo "Pipeline finalizado exitosamente"
+
+artifacts:
+  files:
+    - app.zip
+    - app.py
+    - requirements.txt
